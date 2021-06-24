@@ -14,6 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
+lib/
 lib64/
 parts/
 sdist/
@@ -112,18 +113,8 @@ data
 # custom
 *.pkl
 *.pkl.json
-*.segm.json
 *.log.json
 work_dirs/
 
 # Pytorch
 *.pth
-
-.github
-checkpoints
-result
-work_dir
-/lib/mmcv-0.2.16
-/lib/mmdetection-2.13.0
-/lib/mmdetection-1.0.0/build/
-
