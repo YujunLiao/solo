@@ -1,0 +1,27 @@
+solo_r101_fpn_8gpu_3x.py SOLO_R101_3x.pth
+solov2_x101_dcn_fpn_8gpu_3x.py SOLOv2_X101_DCN_3x.pth
+solov2_light_512_dcn_r50_fpn_8gpu_3x.py SOLOv2_LIGHT_512_DCN_R50_3x.pth
+
+change data_root = '../data/coco/' (arg file)
+args.checkpoint = f'../checkpoints/{args.checkpoint}' (TESTINS)
+
+
+
+当前图100个框
+每个框：1280*853分割结果+类别+置信度
+
+
+## 测试
+python tools/test_ins.py configs/solov2/solov2_light_448_r18_fpn_8gpu_3x.py  ./work_dir/0602/ps-X10DRG/solov2_light_448_r18_fpn_8gpu_3x/epoch_35.pth  --show --out  ./work_dir/0602/ps-X10DRG/solov2_light_448_r18_fpn_8gpu_3x/pkl/epoch_35.pkl --eval segm
+./tools/dist_test.sh configs/solov2/solov2_light_448_r18_fpn_8gpu_3x.py ./work_dir/0602/ps-X10DRG/solov2_light_448_r18_fpn_8gpu_3x/epoch_35.pth  4  --show --out ./work_dir/0602/ps-X10DRG/solov2_light_448_r18_fpn_8gpu_3x/pkl/epoch_35.pkl --eval segm
+
+## COCO
+ann_file: ann_file name
+cat_ids: 选择哪些类别(例如选1, 3, 4, 5, 7)
+cat2label: 给选择的类别分配序号（连续的）
+CLASS: 类别对应的名字
+coco：
+filtter_empty_gt:
+flag: {list:117266} :
+img_infos: {list:117266} :
+img_ids: {list:118287}
