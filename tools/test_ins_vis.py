@@ -18,7 +18,49 @@ import cv2
 import numpy as np
 import matplotlib.cm as cm
 
-def vis_seg(data, result, img_norm_cfg, data_id, colors, score_thr, save_dir):
+import matplotlib.pyplot as plt
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Polygon
+from pycocotools import mask as maskUtils
+
+
+def show_GT_Annos(dataset, annos,  img, img_meta, save_path):
+    coco = dataset.coco
+    h, w, _ = img_meta['img_shape']
+    img_show = img[:h, :w, :]
+    seg_show = np.zeros([h, w, 3])
+    # seg_show[:,:,1] = 255
+    for anno in annos:
+        cur_mask = coco.annToMask(anno)
+
+    # for idx in range(num_mask):
+    #     idx = -(idx + 1)
+    #     cur_mask = seg_label[idx, :, :]
+        cur_mask = mmcv.imresize(cur_mask, (w, h))
+        cur_mask = (cur_mask > 0.5).astype(np.uint8)
+        if cur_mask.sum() == 0:
+            continue
+        color_mask = np.random.randint(
+            0, 256, (1, 3), dtype=np.uint8)
+        cur_mask_bool = cur_mask.astype(np.bool)
+        seg_show[cur_mask_bool] = img_show[cur_mask_bool] * 0.2 + color_mask * 0.8
+
+        # cur_cate = cate_label[idx]
+        # cur_score = cate_score[idx]
+
+        # label_text = class_names[cur_cate]
+        label_text = dataset.CLASSES[dataset.cat2label[anno['category_id']]-1]
+        # label_text += '|{:.02f}'.format(cur_score)
+        # center
+        center_y, center_x = ndimage.measurements.center_of_mass(cur_mask)
+        vis_pos = (max(int(center_x) - 10, 0), int(center_y))
+        cv2.putText(seg_show, label_text, vis_pos,
+                    cv2.FONT_HERSHEY_COMPLEX, 0.3, (255, 255, 255))  # green
+    mmcv.imwrite(seg_show, f'{save_path}')
+
+
+
+def vis_seg(data, result, img_norm_cfg, data_id, colors, score_thr, save_dir, dataset=None):
     img_tensor = data['img'][0]
     img_metas = data['img_meta'][0].data[0]
     imgs = tensor2imgs(img_tensor, **img_norm_cfg)
@@ -26,6 +68,15 @@ def vis_seg(data, result, img_norm_cfg, data_id, colors, score_thr, save_dir):
     class_names = get_classes('coco')
 
     for img, img_meta, cur_result in zip(imgs, img_metas, result):
+        img_id = dataset.img_ids[data_id]
+        annos = dataset.coco.imgToAnns[img_id]
+        gt_dir = f'{save_dir}/gt/'
+        if not os.path.exists(gt_dir):
+            os.makedirs(gt_dir)
+        # show_GT_Annos(dataset, annos, img, img_meta, save_path=f'{gt_dir}/{img_id}.jpg')
+        show_GT_Annos(dataset, annos, img, img_meta, save_path=f'{gt_dir}/{data_id}.jpg')
+
+
         if cur_result is None:
             continue
         h, w, _ = img_meta['img_shape']
@@ -54,7 +105,9 @@ def vis_seg(data, result, img_norm_cfg, data_id, colors, score_thr, save_dir):
         cate_label = cate_label[orders]
         cate_score = cate_score[orders]
 
-        seg_show = img_show.copy()
+        # seg_show = img_show.copy()
+        seg_show = np.zeros([h, w, 3])
+
         for idx in range(num_mask):
             idx = -(idx+1)
             cur_mask = seg_label[idx, :,:]
@@ -65,7 +118,7 @@ def vis_seg(data, result, img_norm_cfg, data_id, colors, score_thr, save_dir):
             color_mask = np.random.randint(
                 0, 256, (1, 3), dtype=np.uint8)
             cur_mask_bool = cur_mask.astype(np.bool)
-            seg_show[cur_mask_bool] = img_show[cur_mask_bool] * 0.5 + color_mask * 0.5
+            seg_show[cur_mask_bool] = img_show[cur_mask_bool] * 0.2 + color_mask * 0.8
 
             cur_cate = cate_label[idx]
             cur_score = cate_score[idx]
@@ -77,6 +130,7 @@ def vis_seg(data, result, img_norm_cfg, data_id, colors, score_thr, save_dir):
             vis_pos = (max(int(center_x) - 10, 0), int(center_y))
             cv2.putText(seg_show, label_text, vis_pos,
                         cv2.FONT_HERSHEY_COMPLEX, 0.3, (255, 255, 255))  # green
+        # mmcv.imwrite(seg_show, '{}/{}.jpg'.format(save_dir, img_id))
         mmcv.imwrite(seg_show, '{}/{}.jpg'.format(save_dir, data_id))
 
 
@@ -96,13 +150,14 @@ def single_gpu_test(model, data_loader, args, cfg=None, verbose=True):
         results.append(result)
 
         if verbose:
-            vis_seg(data, seg_result, cfg.img_norm_cfg, data_id=i, colors=colors, score_thr=args.score_thr, save_dir=args.save_dir)
+            vis_seg(data, seg_result, cfg.img_norm_cfg, data_id=i, colors=colors, score_thr=args.score_thr, save_dir=args.save_dir, dataset=data_loader.dataset)
 
         batch_size = data['img'][0].size(0)
         for _ in range(batch_size):
             prog_bar.update()
-        # if i == 10:
-        #     break
+        if i == 500:
+        # if i == 500:
+            break
     return results
 
 
@@ -292,6 +347,8 @@ def main():
                 outputs_ = [out[name] for out in outputs]
                 result_file = args.json_out + '.{}'.format(name)
                 results2json(dataset, outputs_, result_file)
+
+
 
 
 if __name__ == '__main__':
