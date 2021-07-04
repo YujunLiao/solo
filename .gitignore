@@ -126,4 +126,4 @@ work_dir
 /lib/mmcv-0.2.16
 /lib/mmdetection-2.13.0
 /lib/mmdetection-1.0.0/build/
-
+seg_result
